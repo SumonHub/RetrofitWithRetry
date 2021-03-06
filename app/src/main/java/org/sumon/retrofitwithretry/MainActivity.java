@@ -4,14 +4,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -21,37 +18,44 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private TextView tvResult;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
 
         tvResult = findViewById(R.id.tvResult);
-
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        mSwipeRefreshLayout = findViewById(R.id.swiperefresh);
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
-            public void onClick(View view) {
-                RetrofitInterface apiService = RetrofitClient.getApiService();
-                apiService.getIndex().enqueue(new Callback<CommonResponse>() {
-                    @Override
-                    public void onResponse(Call<CommonResponse> call, Response<CommonResponse> response) {
-                        tvResult.setText(response.body().getMsg());
-                        Toast.makeText(getApplicationContext(), "Success " + response.body().getMsg(), Toast.LENGTH_LONG).show();
+            public void onRefresh() {
+                _getData();
+            }
+        });
 
-                        Log.d(TAG, "onResponse: " + response);
-                    }
 
-                    @Override
-                    public void onFailure(Call<CommonResponse> call, Throwable t) {
-                        tvResult.setText(t.getMessage());
-                        Toast.makeText(getApplicationContext(), "Failure " + t.getMessage(), Toast.LENGTH_LONG)
-                                .show();
-                    }
-                });
+        _getData();
+    }
+
+    private void _getData() {
+        RetrofitInterface apiService = RetrofitClient.getApiService();
+        apiService.getIndex().enqueue(new Callback<CommonResponse>() {
+            @Override
+            public void onResponse(Call<CommonResponse> call, Response<CommonResponse> response) {
+                mSwipeRefreshLayout.setRefreshing(false);
+                tvResult.setText(response.body().getMsg());
+                Toast.makeText(getApplicationContext(), "Success " + response.body().getMsg(), Toast.LENGTH_LONG).show();
+
+                Log.d(TAG, "onResponse: " + response);
+            }
+
+            @Override
+            public void onFailure(Call<CommonResponse> call, Throwable t) {
+                mSwipeRefreshLayout.setRefreshing(false);
+                tvResult.setText(t.getMessage());
+                Toast.makeText(getApplicationContext(), "Failure " + t.getMessage(), Toast.LENGTH_LONG)
+                        .show();
             }
         });
     }
